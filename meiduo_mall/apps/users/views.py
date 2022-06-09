@@ -29,6 +29,7 @@ from django.shortcuts import render
 from django.views import View
 from apps.users.models import User
 from django.http import JsonResponse
+from django.contrib.auth import login
 
 
 class UsernameCountView(View):
@@ -44,8 +45,8 @@ class UsernameCountView(View):
 
 class RegisterView(View):
     def post(self, request):
-        body_bytes = request.body
-        body_dict = json.loads(body_bytes)
+        body_str = request.body
+        body_dict = json.loads(body_str)
 
         # 获取数据
         username = body_dict.get('username')
@@ -73,5 +74,8 @@ class RegisterView(View):
         # user.save()
 
         # 对密码进行加密
-        User.objects.create_user(username=username, password=password, mobile=mobile)
+        user = User.objects.create_user(username=username, password=password, mobile=mobile)
+
+        # 状态保持
+        login(request, user)
         return JsonResponse({'code': 0, 'errmsg': 'ok'})

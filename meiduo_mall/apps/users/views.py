@@ -32,6 +32,7 @@ from django.http import JsonResponse
 from django.contrib.auth import login
 
 
+# 判断用户名是否重复
 class UsernameCountView(View):
     def get(self, request, username):
         # 接收用户名,判断是否符合标准
@@ -41,6 +42,14 @@ class UsernameCountView(View):
         # 根据用户名查询数据库
         count = User.objects.filter(username=username).count()
         return JsonResponse({"code": 0, "count": count, 'errmsg': 'ok'})
+
+
+# 判断手机号是否重复
+class MobileCountView(View):
+    def get(self, request, mobile):
+        count = User.objects.filter(mobile=mobile).count()
+        return JsonResponse({'code': 0, 'count': count, 'errmsg': 'ok'})
+
 
 
 class RegisterView(View):

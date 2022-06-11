@@ -1,6 +1,5 @@
 import json
 import re
-
 from django.shortcuts import render
 
 # Create your views here.
@@ -51,7 +50,7 @@ class MobileCountView(View):
         return JsonResponse({'code': 0, 'count': count, 'errmsg': 'ok'})
 
 
-
+# 注册功能
 class RegisterView(View):
     def post(self, request):
         body_str = request.body
@@ -87,4 +86,49 @@ class RegisterView(View):
 
         # 状态保持
         login(request, user)
+        return JsonResponse({'code': 0, 'errmsg': 'ok'})
+
+
+# 登陆功能
+class LoginView(View):
+    def post(self, request):
+        # 获取用户登陆的json数据
+        body_str = request.body
+        # 解析json数据转换为字典格式
+        body_dict = json.loads(body_str)
+
+        # 接收数据
+        username = body_dict.get('username')
+        password = body_dict.get('password')
+        remembered = body_dict.get('remembered')
+
+        # 验证数据
+        if not all([username, password]):
+            return JsonResponse({'code': 400, 'errmsg': '参数不全'})
+
+        # 使用系统提供的验证用户信息方法
+        from django.contrib.auth import authenticate
+
+        # 判断用户输入的是手机号还是用户名
+        if re.match('1[3-9]\d{9}$', username):
+            User.USERNAME_FIELD = 'mobile'
+        else:
+            User.USERNAME_FIELD = 'username'
+
+        # 若用户名密码不正确，返回None
+        user = authenticate(username=username, password=password)
+
+        if user is None:
+            return JsonResponse({'code': 400, 'errmsg': '账号或密码错误'})
+
+        # session状态保持
+        login(request, user)
+
+        # 判断是否记住登陆
+        if remembered is True:
+            request.session.set_expiry(60 * 60 * 24 * 7)    # 设置session存在时间：一周， None参数默认时间为两周
+        else:
+            # 不记住密码
+            request.session.set_expiry(0)   # 参数为0，关闭浏览器就过期
+
         return JsonResponse({'code': 0, 'errmsg': 'ok'})

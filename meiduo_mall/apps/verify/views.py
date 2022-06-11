@@ -58,7 +58,7 @@ class SmsCodeView(View):
         # 提取发送短信的标记
         sned_flag = redis_cli.get('send_flag_%s' % mobile)
         if sned_flag:
-            return JsonResponse({'code': 400, 'errmsg': '不要频繁发送短信'})
+            return JsonResponse({'code': 400, 'errmsg': '请勿频繁发送短信'})
 
         # 生成短信验证码
         #方法一
@@ -67,25 +67,33 @@ class SmsCodeView(View):
         # 方法二
         # sms_code = "%06d" % random.randint(0, 999999)
 
-        # 在redis中添加短信验证码
-        redis_cli.setex('sms_%s' % mobile, 300, sms_code)
-        # 在redis中添加一个发送标记
-        redis_cli.setex('send_flag_%s' % mobile, 180, 1)
+        # 管道技术-pipeline
+        pipeline = redis_cli.pipeline()  # 新建管道
+        pipeline.setex('sms_%s' % mobile, 300, sms_code)
+        pipeline.setex('send_flag_%s' % mobile, 60, 1)
+        pipeline.execute()
+
+        # # 在redis中添加短信验证码
+        # redis_cli.setex('sms_%s' % mobile, 300, sms_code)
+        # # 在redis中添加一个发送标记
+        # redis_cli.setex('send_flag_%s' % mobile, 60, 1)
 
         # 发送短信验证码
-        CCP().send_template_sms('15878761027', [sms_code, 5], 1)
+        # CCP().send_template_sms('15878761027', [sms_code, 5], 1)
+        from celery_tasks.sms.tasks import celery_send_sms_code
+        celery_send_sms_code.delay(mobile, sms_code)
 
-        #  获取短信验证码参数
-        sms_code = request.POST.get('sms_code')
-
-        # 连接redis获取短信验证码
-        redis_sms_code = redis_cli.get('sms_%s' % mobile)
-        # 判断短信验证码是否过期
-        if redis_sms_code is None:
-            return JsonResponse({'code': 400, 'errmsg': '短信验证码已过期'})
-
-        # 判断输入的短信验证码与服务端存储的是否一致
-        if redis_sms_code != sms_code:
-            return JsonResponse({'code': 400, 'errmsg': '短信验证码错误'})
+        # #  获取短信验证码参数
+        # sms_code = request.POST.get('sms_code')
+        #
+        # # 连接redis获取短信验证码
+        # redis_sms_code = redis_cli.get('sms_%s' % mobile)
+        # # 判断短信验证码是否过期
+        # if redis_sms_code is None:
+        #     return JsonResponse({'code': 400, 'errmsg': '短信验证码已过期'})
+        #
+        # # 判断输入的短信验证码与服务端存储的是否一致
+        # if redis_sms_code != sms_code:
+        #     return JsonResponse({'code': 400, 'errmsg': '短信验证码错误'})
 
         return JsonResponse({'code': 0, 'errmsg': 'ok'})

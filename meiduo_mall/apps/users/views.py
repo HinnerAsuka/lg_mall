@@ -131,4 +131,20 @@ class LoginView(View):
             # 不记住密码
             request.session.set_expiry(0)   # 参数为0，关闭浏览器就过期
 
-        return JsonResponse({'code': 0, 'errmsg': 'ok'})
+        # 给返回的json数据中添加cookie信息
+        response = JsonResponse({'code': 0, 'errmsg': 'ok'})
+        response.set_cookie('username', username, max_age=None)     # 为了首页显示用户信息
+
+        return response
+
+
+# 退出功能
+from django.contrib.auth import logout
+
+
+class LogoutView(View):
+    def delete(self, request):
+        logout(request)
+        response = JsonResponse({'code': 0, 'errmsg': 'ok'})
+        response.delete_cookie('username')
+        return response

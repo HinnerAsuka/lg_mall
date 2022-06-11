@@ -1,5 +1,5 @@
 from django.urls import path
-from apps.users.views import UsernameCountView, RegisterView, MobileCountView, LoginView
+from apps.users.views import UsernameCountView, RegisterView, MobileCountView, LoginView, LogoutView
 
 urlpatterns = [
     # 判断用户名,手机号是否存在
@@ -9,4 +9,6 @@ urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
     # 登陆功能
     path('login/', LoginView.as_view(), name='login'),
+    # 退出功能
+    path('logout/', LogoutView.as_view(), name='logout'),
 ]

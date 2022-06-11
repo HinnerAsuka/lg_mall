@@ -1,5 +1,5 @@
 from django.urls import path
-from apps.users.views import UsernameCountView, RegisterView, MobileCountView, LoginView, LogoutView
+from apps.users.views import UsernameCountView, RegisterView, MobileCountView, LoginView, LogoutView, CenterView
 
 urlpatterns = [
     # 判断用户名,手机号是否存在
@@ -11,4 +11,6 @@ urlpatterns = [
     path('login/', LoginView.as_view(), name='login'),
     # 退出功能
     path('logout/', LogoutView.as_view(), name='logout'),
+    # 用户未登陆返回JSON数据
+    path('center/', CenterView.as_view(), name='center'),
 ]

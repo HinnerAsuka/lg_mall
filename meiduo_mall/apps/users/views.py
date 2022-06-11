@@ -148,3 +148,13 @@ class LogoutView(View):
         response = JsonResponse({'code': 0, 'errmsg': 'ok'})
         response.delete_cookie('username')
         return response
+
+
+# 用户未登陆的话，用户中心返回JSON数据
+from django.contrib.auth.mixins import LoginRequiredMixin
+from utils.views import LoginRequiredJSONMixin
+
+
+class CenterView(LoginRequiredJSONMixin, View):
+    def get(self, request):
+        return JsonResponse({'code': 0, 'errmsg': 'ok'})

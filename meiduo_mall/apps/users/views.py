@@ -133,7 +133,7 @@ class LoginView(View):
 
         # 给返回的json数据中添加cookie信息
         response = JsonResponse({'code': 0, 'errmsg': 'ok'})
-        response.set_cookie('username', username, max_age=None)     # 为了首页显示用户信息
+        response.set_cookie('username', username, max_age=60 * 60 * 24 * 7)     # 为了首页显示用户信息
 
         return response
 

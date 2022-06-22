@@ -155,6 +155,17 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from utils.views import LoginRequiredJSONMixin
 
 
+# 使用户中心能正常显示
 class CenterView(LoginRequiredJSONMixin, View):
     def get(self, request):
-        return JsonResponse({'code': 0, 'errmsg': 'ok'})
+        # request.user 就是 已经登录的用户信息
+        # request.user 是来源于 中间件
+        # 系统会进行判断 如果我们确实是登录用户，则可以获取到 登录用户对应的 模型实例数据
+        # 如果我们确实不是登录用户，则request.user = AnonymousUser()  匿名用户
+        info_data = {
+            'username': request.user.username,
+            'mobile': request.user.mobile,
+            'email': request.user.email,
+            'email_active': request.user.email_active,
+        }
+        return JsonResponse({'code': 0, 'errmsg': 'ok', 'info_data': info_data})

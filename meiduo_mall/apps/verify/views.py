@@ -83,17 +83,17 @@ class SmsCodeView(View):
         from celery_tasks.sms.tasks import celery_send_sms_code
         celery_send_sms_code.delay(mobile, sms_code)
 
-        # #  获取短信验证码参数
-        # sms_code = request.POST.get('sms_code')
-        #
-        # # 连接redis获取短信验证码
-        # redis_sms_code = redis_cli.get('sms_%s' % mobile)
-        # # 判断短信验证码是否过期
-        # if redis_sms_code is None:
-        #     return JsonResponse({'code': 400, 'errmsg': '短信验证码已过期'})
-        #
-        # # 判断输入的短信验证码与服务端存储的是否一致
-        # if redis_sms_code != sms_code:
-        #     return JsonResponse({'code': 400, 'errmsg': '短信验证码错误'})
+        #  获取短信验证码参数
+        sms_code = request.POST.get('sms_code')
+
+        # 连接redis获取短信验证码
+        redis_sms_code = redis_cli.get('sms_%s' % mobile)
+        # 判断短信验证码是否过期
+        if redis_sms_code is None:
+            return JsonResponse({'code': 400, 'errmsg': '短信验证码已过期'})
+
+        # 判断输入的短信验证码与服务端存储的是否一致
+        if redis_sms_code != sms_code.decode():
+            return JsonResponse({'code': 400, 'errmsg': '短信验证码错误'})
 
         return JsonResponse({'code': 0, 'errmsg': 'ok'})

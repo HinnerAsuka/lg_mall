@@ -11,6 +11,6 @@ urlpatterns = [
     path('login/', LoginView.as_view(), name='login'),
     # 退出功能
     path('logout/', LogoutView.as_view(), name='logout'),
-    # 用户未登陆返回JSON数据
-    path('center/', CenterView.as_view(), name='center'),
+    # 用户中心
+    path('info/', CenterView.as_view(), name='info'),
 ]

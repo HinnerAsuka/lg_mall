@@ -169,3 +169,63 @@ class CenterView(LoginRequiredJSONMixin, View):
             'email_active': request.user.email_active,
         }
         return JsonResponse({'code': 0, 'errmsg': 'ok', 'info_data': info_data})
+
+
+# 邮箱操作
+class EmailView(LoginRequiredJSONMixin, View):
+
+    def put(self, request):
+        data = json.loads(request.body)
+        email = data.get('email')
+
+        # 验证数据
+        if re.match('/^[a-z0-9][\w\.\-]*@[a-z0-9\-]+(\.[a-z]{2,5}){1,2}$/', email):
+            return JsonResponse({'code': 400, 'errmsg': '邮箱格式错误'})
+
+        # 更新用户邮件
+        user = request.user
+        user.email = email
+        user.save()
+
+        from django.core.mail import send_mail
+        from apps.users.utils import generic_email_verify_token
+        from celery_tasks.email.tasks import celery_send_email
+
+        token = generic_email_verify_token(request.user.id)
+        subject = '乐购商城激活邮件'
+        message = ''
+        from_email = '乐购商城<1838557277@qq.com>'
+        recipient_list = ['1838557277@qq.com']
+        verify_url = f"http://www.meiduo.site:8080/success_verify_email.html?token={token}"
+
+        # 邮箱的内容如果是html，这时使用html_message
+        html_message = f'<p>尊敬的用户您好!</p>'\
+                        f'<p>感谢您使用乐购商城</p>'\
+                        f'<p>您的邮箱为{email},请点击下面的链接进行邮箱激活</p>'\
+                        f'<p><a href="{verify_url}">{verify_url}</a></p>'
+
+        # send_mail(subject=subject, message=message, from_email=from_email, recipient_list=recipient_list, html_message=html_message)
+        celery_send_email.delay(subject, message, from_email, recipient_list, html_message)
+
+        return JsonResponse({'code': 0, 'errmsg': 'ok'})
+
+
+from apps.users.utils import check_verify_token
+
+
+class EmailVerifyView(View):
+
+    def put(self, request):
+        # 获取参数
+        token = request.GET.get('token')
+
+        if token is None:
+            return JsonResponse({'code': 400, 'errmsg': '参数不存在'})
+
+        user_id = check_verify_token(token)
+        if user_id is None:
+            return JsonResponse({'code': 400, 'errmsg': '参数不存在'})
+        user = User.objects.get(id=user_id)
+        user.email_active = True
+        user.save()
+        return JsonResponse({'code': 0, 'errmsg': 'ok'})

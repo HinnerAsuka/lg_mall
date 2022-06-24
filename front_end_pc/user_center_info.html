@@ -64,7 +64,7 @@
                                     <input v-model="email" type="email" name="email">
                                     <input @click="save_email" type="button" name="" value="保 存">
                                     <input @click="set_email=false" type="reset" name="" value="取 消">
-                                    <div v-if="email_error">邮箱格式错误</div>
+                                    <div v-if="email_error" style="color: red">邮箱格式错误</div>
                                 </div>
                                 <div v-else-if="email">
                                     {{ email }}

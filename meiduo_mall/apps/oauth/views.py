@@ -73,6 +73,7 @@ class OauthQQ(View):
             return response
         pass
 
+    # 进行qq号与商城账号的绑定
     def post(self, request):
         # 接收请求参数
         body_str = request.body

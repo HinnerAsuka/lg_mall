@@ -126,14 +126,14 @@ class LoginView(View):
 
         # 判断是否记住登陆
         if remembered is True:
-            request.session.set_expiry(60 * 60 * 24 * 7)    # 设置session存在时间：一周， None参数默认时间为两周
+            request.session.set_expiry(60 * 60 * 24 * 7)  # 设置session存在时间：一周， None参数默认时间为两周
         else:
             # 不记住密码
-            request.session.set_expiry(0)   # 参数为0，关闭浏览器就过期
+            request.session.set_expiry(0)  # 参数为0，关闭浏览器就过期
 
         # 给返回的json数据中添加cookie信息
         response = JsonResponse({'code': 0, 'errmsg': 'ok'})
-        response.set_cookie('username', username, max_age=60 * 60 * 24 * 7)     # 为了首页显示用户信息
+        response.set_cookie('username', username, max_age=60 * 60 * 24 * 7)  # 为了首页显示用户信息
 
         return response
 
@@ -199,10 +199,10 @@ class EmailView(LoginRequiredJSONMixin, View):
         verify_url = f"http://www.meiduo.site:8080/success_verify_email.html?token={token}"
 
         # 邮箱的内容如果是html，这时使用html_message
-        html_message = f'<p>尊敬的用户您好!</p>'\
-                        f'<p>感谢您使用乐购商城</p>'\
-                        f'<p>您的邮箱为{email},请点击下面的链接进行邮箱激活</p>'\
-                        f'<p><a href="{verify_url}">{verify_url}</a></p>'
+        html_message = f'<p>尊敬的用户您好!</p>' \
+                       f'<p>感谢您使用乐购商城</p>' \
+                       f'<p>您的邮箱为{email},请点击下面的链接进行邮箱激活</p>' \
+                       f'<p><a href="{verify_url}">{verify_url}</a></p>'
 
         # send_mail(subject=subject, message=message, from_email=from_email, recipient_list=recipient_list, html_message=html_message)
         celery_send_email.delay(subject, message, from_email, recipient_list, html_message)
@@ -213,6 +213,7 @@ class EmailView(LoginRequiredJSONMixin, View):
 from apps.users.utils import check_verify_token
 
 
+# 邮箱激活
 class EmailVerifyView(View):
 
     def put(self, request):
@@ -229,3 +230,77 @@ class EmailVerifyView(View):
         user.email_active = True
         user.save()
         return JsonResponse({'code': 0, 'errmsg': 'ok'})
+
+
+from apps.users.models import Address
+
+
+# 新增收获地址
+class AddressCreateView(LoginRequiredJSONMixin, View):
+
+    def post(self, request):
+        data = json.loads(request.body)
+
+        receiver = data.get('receiver')
+        province_id = data.get('province_id')
+        city_id = data.get('city_id')
+        district_id = data.get('district_id')
+        place = data.get('place')
+        mobile = data.get('mobile')
+        tel = data.get('tel')
+        email = data.get('email')
+        user = request.user
+
+        if all([receiver, province_id, city_id, district_id, place, mobile, tel, email]) is None:
+            return JsonResponse({'code': 400, 'errmsg': '参数不存在'})
+
+        address = Address.objects.create(
+            user=user,
+            title=receiver,
+            receiver=receiver,
+            province_id=province_id,
+            city_id=city_id,
+            district_id=district_id,
+            place=place,
+            mobile=mobile,
+            tel=tel,
+            email=email,
+        )
+        address_dict = {
+            'id': address.id,
+            'title': address.title,
+            'receiver': address.receiver,
+            'province': address.province.name,
+            'city': address.city.name,
+            'district': address.district.name,
+            'place': address.place,
+            'mobile': address.mobile,
+            'tel': address.tel,
+            'email': address.email
+        }
+        return JsonResponse({'code': 0, 'errmsg': 'ok', 'address': address_dict})
+
+
+# 地址展示
+class AddressView(LoginRequiredJSONMixin, View):
+
+    def get(self, request):
+        user = request.user
+        addresses = Address.objects.filter(user=user, is_deleted=False)
+        address_list = []
+        for address in addresses:
+            address_list.append(
+                {
+                    'id': address.id,
+                    'title': address.title,
+                    'receiver': address.receiver,
+                    'province': address.province.name,
+                    'city': address.city.name,
+                    'district': address.district.name,
+                    'place': address.place,
+                    'mobile': address.mobile,
+                    'tel': address.tel,
+                    'email': address.email
+                }
+            )
+        return JsonResponse({'code': 0, 'errmsg': 'ok', 'addresses': address_list})

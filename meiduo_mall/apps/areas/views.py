@@ -6,6 +6,7 @@ from apps.areas.models import Area
 from django.http import JsonResponse
 from django.core.cache import cache
 
+
 class AreaView(View):
 
     def get(self, request):

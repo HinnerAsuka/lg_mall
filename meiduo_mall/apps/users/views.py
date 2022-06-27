@@ -115,7 +115,7 @@ class LoginView(View):
         else:
             User.USERNAME_FIELD = 'username'
 
-        # 若用户名密码不正确，返回None
+        # 验证用户名和密码，若用户名密码不正确，返回None
         user = authenticate(username=username, password=password)
 
         if user is None:
@@ -304,3 +304,84 @@ class AddressView(LoginRequiredJSONMixin, View):
                 }
             )
         return JsonResponse({'code': 0, 'errmsg': 'ok', 'addresses': address_list})
+
+
+# 收货地址的修改和删除
+class AddressEditView(View):
+
+    def put(self, request, id):
+        data = json.loads(request.body)
+
+        receiver = data.get('receiver')
+        province_id = data.get('province_id')
+        city_id = data.get('city_id')
+        district_id = data.get('district_id')
+        place = data.get('place')
+        mobile = data.get('mobile')
+        tel = data.get('tel')
+        email = data.get('email')
+        user = request.user
+
+        address = Address.objects.get(id=id)
+
+        if all([receiver, province_id, city_id, district_id, place, mobile, tel, email]) is None:
+            return JsonResponse({'code': 400, 'errmsg': '参数不存在'})
+
+        # 更新用户信息
+        address.user = user
+        address.title = receiver
+        address.receiver = receiver
+        address.province_id = province_id
+        address.city_id = city_id
+        address.district_id = district_id
+        address.place = place
+        address.mobile = mobile
+        address.tel = tel
+        address.email = email
+        address.save()
+
+        address_dict = {
+            'id': address.id,
+            'title': address.title,
+            'receiver': address.receiver,
+            'province': address.province.name,
+            'city': address.city.name,
+            'district': address.district.name,
+            'place': address.place,
+            'mobile': address.mobile,
+            'tel': address.tel,
+            'email': address.email
+        }
+        return JsonResponse({'code': 0, 'errmsg': 'ok', 'address': address_dict})
+
+    def delete(self, request, id):
+        address = Address.objects.get(id=id)
+        address.is_deleted = True
+        address.save()
+        return JsonResponse({'code': 0, 'errmsg': 'ok'})
+
+
+# 设置默认收货地址
+class AddressDefaultView(View):
+
+    def put(self, request, id):
+        address = Address.objects.get(id=id)
+        address.save()
+        return JsonResponse({'code': 0, 'errmsg': 'ok'})
+
+
+# 修改地址标题
+class AddressTitleView(View):
+
+    def put(self, request, id):
+        # 接收数据
+        data = json.loads(request.body)
+        # 获取数据
+        title = data.get('title')
+        if title is None:
+            return JsonResponse({'code': 400, 'errmsg': '参数不能为空'})
+
+        address = Address.objects.get(id=id)
+        address.title = title
+        address.save()
+        return JsonResponse({'code': 0, 'errmsg': 'ok'})

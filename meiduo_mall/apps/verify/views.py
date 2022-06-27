@@ -7,7 +7,6 @@ import random
 import string
 from libs.yuntongxun.sms import CCP
 
-
 # Create your views here.
 
 
@@ -80,6 +79,8 @@ class SmsCodeView(View):
 
         # 发送短信验证码
         # CCP().send_template_sms('15878761027', [sms_code, 5], 1)
+
+        # 异步发送短信验证码
         from celery_tasks.sms.tasks import celery_send_sms_code
         celery_send_sms_code.delay(mobile, sms_code)
 

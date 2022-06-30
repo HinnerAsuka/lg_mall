@@ -61,7 +61,7 @@ ROOT_URLCONF = 'meiduo_mall.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -231,3 +231,7 @@ EMAIL_HOST_USER = '1838557277@qq.com'
 EMAIL_HOST_PASSWORD = 'pvqmuifwukbhfdej'
 DEFAULT_FROM_EMAIL = '1838557277@qq.com'
 SERVER_EMAIL = "1838557277@qq.com"
+
+
+# 加载自定义文件存储类
+DEFAULT_FILE_STORAGE = 'utils.fastdfs.storage.MyStorage'

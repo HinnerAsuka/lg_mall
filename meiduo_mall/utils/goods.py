@@ -42,3 +42,24 @@ def get_categories():
             categories[group_id]['sub_cats'].append(cat2)
 
     return categories
+
+
+# 面包屑
+def get_breadcrumb(category):
+
+    dict = {
+        'cat1': '',
+        'cat2': '',
+        'cat3': '',
+    }
+    if category.parent is None:
+        dict['cat1'] = category.name
+    elif category.parent.parent is None:
+        dict['cat1'] = category.parent.name
+        dict['cat2'] = category.name
+    else:
+        dict['cat1'] = category.parent.parent.name
+        dict['cat3'] = category.parent.name
+        dict['cat2'] = category.name
+
+    return dict

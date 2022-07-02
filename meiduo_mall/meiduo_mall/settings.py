@@ -46,6 +46,8 @@ INSTALLED_APPS = [
     'apps.contents',
     # haystack
     'haystack',
+    # 定时
+    'django_crontab',
 ]
 
 MIDDLEWARE = [
@@ -251,3 +253,8 @@ HAYSTACK_CONNECTIONS = {
 
 # 设置搜索后 每页返回的数据数量
 HAYSTACK_SEARCH_RESULTS_PER_PAGE = 5
+
+# 定时任务
+CRONJOBS = [
+    ('*/1 * * * *', 'apps.contents.crons.generic_index', '>>' + os.path.join(BASE_DIR, 'logs/crontab.log'))
+]

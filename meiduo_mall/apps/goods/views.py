@@ -121,4 +121,30 @@ class SKUSearchView(SearchView):
             )
         return JsonResponse(sku_list, safe=False)
 
+from utils.goods import get_goods_specs
+
+
+# 商品详情
+class DetailView(View):
+
+    def get(self, request, sku_id):
+        try:
+            sku = SKU.objects.get(id=sku_id)
+        except SKU.DoesNotExist:
+            return JsonResponse({'code': 400})
+
+        # 分类数据
+        categories = get_categories()
+        # 面包屑
+        breadcrumb = get_breadcrumb(sku.category)
+        # 商品规格信息
+        goods_specs = get_goods_specs(sku)
+
+        context = {
+            'categories': categories,
+            'breadcrumb': breadcrumb,
+            'sku': sku,
+            'goods_specs': goods_specs
+        }
+        return render(request, 'detail.html', context)
 

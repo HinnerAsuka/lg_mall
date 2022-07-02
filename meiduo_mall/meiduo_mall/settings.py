@@ -39,10 +39,13 @@ INSTALLED_APPS = [
     'apps.users',
     'apps.verify',
     'apps.oauth',
+    # CORS
     'corsheaders',
     'apps.areas',
     'apps.goods',
     'apps.contents',
+    # haystack
+    'haystack',
 ]
 
 MIDDLEWARE = [
@@ -235,3 +238,16 @@ SERVER_EMAIL = "1838557277@qq.com"
 
 # 加载自定义文件存储类
 DEFAULT_FILE_STORAGE = 'utils.fastdfs.storage.MyStorage'
+
+
+# ElasticSearch的配置
+HAYSTACK_CONNECTIONS = {
+    'default': {
+        'ENGINE': 'haystack.backends.elasticsearch2_backend.Elasticsearch2SearchEngine',
+        'URL': 'http://192.168.146.130:9200/',
+        'INDEX_NAME': 'meiduo',
+    },
+}
+
+# 设置搜索后 每页返回的数据数量
+HAYSTACK_SEARCH_RESULTS_PER_PAGE = 5

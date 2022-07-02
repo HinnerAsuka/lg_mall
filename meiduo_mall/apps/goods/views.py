@@ -96,3 +96,29 @@ class HotListView(View):
             )
 
         return JsonResponse({'code': 0, 'errmsg': 'ok', 'hot_skus': hot_sku})
+
+
+from haystack.views import SearchView
+# 搜索功能
+class SKUSearchView(SearchView):
+
+    def create_response(self):
+        # 获取搜索结果
+        context = self.get_context()
+
+        sku_list = []
+        for sku in context['page'].object_list:
+            sku_list.append(
+                {
+                    'id': sku.object.id,
+                    'name':sku.object.name,
+                    'price': sku.object.price,
+                    'default_image_url': sku.object.default_image.url,
+                    'searchkey': context.get('query'),
+                    'pagesize': context['page'].paginator.num_pages,
+                    'count': context['page'].paginator.count
+                }
+            )
+        return JsonResponse(sku_list, safe=False)
+
+

@@ -81,7 +81,7 @@ class RegisterView(View):
         # user = User(username=username, password=password, mobile=mobile)
         # user.save()
 
-        # 对密码进行加密
+        # 对密码进行加密:create_user
         user = User.objects.create_user(username=username, password=password, mobile=mobile)
 
         # 状态保持
@@ -385,3 +385,49 @@ class AddressTitleView(View):
         address.title = title
         address.save()
         return JsonResponse({'code': 0, 'errmsg': 'ok'})
+
+
+from apps.goods.models import SKU
+from django_redis import get_redis_connection
+
+
+# 用户浏览历史记录
+class UserHistoryView(LoginRequiredJSONMixin, View):
+
+    def post(self, request):
+        user = request.user
+        data = json.loads(request.body)
+        sku_id = data.get('sku_id')
+
+        try:
+            sku = SKU.objects.get(id=sku_id)
+        except SKU.DoesNotExist:
+            return JsonResponse({'code': 400})
+
+        # 连接reids
+        redis_cli = get_redis_connection('history')
+        # 去重
+        redis_cli.lrem('history_%s' % user.id, 0, sku_id)
+        # 保存到redis中，从左开始插入
+        redis_cli.lpush('history_%s' % user.id, sku_id)
+        # 之保存五条数据
+        redis_cli.ltrim('history_%s' % user.id, 0, 4)
+
+        return JsonResponse({'code': 0})
+
+    def get(self, request):
+        user = request.user
+        redis_cli = get_redis_connection('history')
+        ids = redis_cli.lrange('history_%s' % user.id, 0, 4)
+        history_list = []
+        for sku_id in ids:
+            sku = SKU.objects.get(id=sku_id)
+            history_list.append(
+                {
+                    'id': sku.id,
+                    'name': sku.name,
+                    'default_image_url': sku.default_image.url,
+                    'price': sku.price
+                }
+            )
+        return JsonResponse({'code': 0, 'skus': history_list})

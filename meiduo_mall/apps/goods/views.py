@@ -165,6 +165,6 @@ class CategoryVisitCountView(View):
         except GoodsVisitCount.DoesNotExist:
             GoodsVisitCount.objects.create(category=category, date=today, count=1)
         else:
-            gvc += 1
+            gvc.count += 1
             gvc.save()
         return JsonResponse({'code': 0})

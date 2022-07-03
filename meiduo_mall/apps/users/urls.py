@@ -1,6 +1,6 @@
 from django.urls import path
 from apps.users.views import UsernameCountView, RegisterView, MobileCountView, LoginView, LogoutView, CenterView, EmailView, EmailVerifyView,\
-    AddressCreateView, AddressView, AddressEditView, AddressDefaultView, AddressTitleView
+    AddressCreateView, AddressView, AddressEditView, AddressDefaultView, AddressTitleView, UserHistoryView
 
 urlpatterns = [
     # 判断用户名,手机号是否存在
@@ -28,4 +28,6 @@ urlpatterns = [
     path('addresses/<id>/default/', AddressDefaultView.as_view(), name='address_default'),
     # 修改地址标题
     path('addresses/<id>/title/', AddressTitleView.as_view()),
+    # 用户浏览记录
+    path('browse_histories/', UserHistoryView.as_view()),
 ]

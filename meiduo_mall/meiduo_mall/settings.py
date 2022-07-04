@@ -48,6 +48,8 @@ INSTALLED_APPS = [
     'haystack',
     # 定时
     'django_crontab',
+    'apps.orders',
+    'apps.carts'
 ]
 
 MIDDLEWARE = [

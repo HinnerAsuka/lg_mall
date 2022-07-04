@@ -80,10 +80,9 @@ class CartsView(View):
         if user.is_authenticated:
             # 已登录操作redis
             redis_cli = get_redis_connection('carts')
-            pipeline = redis_cli.pipeline()
-            sku_id_count = pipeline.hgetall(f'carts_{user.id}')
-            selected_ids = pipeline.smembers(f'selected_{user.id}')
-            pipeline.execute()
+            sku_id_count = redis_cli.hgetall(f'carts_{user.id}')
+            selected_ids = redis_cli.smembers(f'selected_{user.id}')
+
             # 将redis数据转换为和cookie一样的数据
             carts = {}
             for sku_id, count in sku_id_count.items():

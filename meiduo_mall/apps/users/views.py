@@ -135,6 +135,10 @@ class LoginView(View):
         response = JsonResponse({'code': 0, 'errmsg': 'ok'})
         response.set_cookie('username', username, max_age=60 * 60 * 24 * 7)  # 为了首页显示用户信息
 
+        # 必须在登录后才能合并购物车
+        from apps.carts.utils import marge_cookie_to_redis
+        response = marge_cookie_to_redis(request, response)
+
         return response
 
 
@@ -415,6 +419,7 @@ class UserHistoryView(LoginRequiredJSONMixin, View):
 
         return JsonResponse({'code': 0})
 
+    # 展示浏览记录
     def get(self, request):
         user = request.user
         redis_cli = get_redis_connection('history')

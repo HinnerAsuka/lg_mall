@@ -1,3 +1,5 @@
+import json
+
 from django.shortcuts import render
 
 # Create your views here.
@@ -64,3 +66,80 @@ class OrderSettlementView(LoginRequiredJSONMixin, View):
             'freight': freight
         }
         return JsonResponse({'code': 0, 'context': context})
+
+
+from apps.orders.models import OrderInfo, OrderGoods
+from django.utils import timezone
+from decimal import Decimal
+
+# 提交订单功能
+class OrderCommitView(View):
+
+    def post(self, request):
+        user = request.user
+        data = json.loads(request.body)
+        address_id = data.get('address_id')
+        pay_method = data.get('pay_method')
+
+        if not all([address_id, pay_method]):
+            return JsonResponse({'code': 400})
+
+        try:
+            address = Address.objects.get(id=address_id)
+        except Address.DoesNotExist:
+            return JsonResponse({'code': 400})
+
+        if pay_method not in [OrderInfo.PAY_METHODS_ENUM['CASH'], OrderInfo.PAY_METHODS_ENUM['ALIPAY']]:
+            return JsonResponse({'code': 400})
+
+        # 生成订单id    年月日时分秒 + 用户id(要求为9位)
+        order_id = timezone.localtime().strftime('%Y%m%d%H%M%S') + '%09d' % user.id
+
+        if pay_method == OrderInfo.PAY_METHODS_ENUM['CASH']:
+            pay_status = OrderInfo.ORDER_STATUS_ENUM['UNSEND']
+        else:
+            pay_status = OrderInfo.ORDER_STATUS_ENUM['UNPAID']
+
+        total_count = 0  # 商品数量
+        total_amount = Decimal('0')  # 总金额
+        freight = Decimal('10.00')  # 运费
+
+        orderinfo = OrderInfo.objects.create(
+            order_id=order_id,
+            user=user,
+            total_count=total_count,
+            total_amount=total_amount,
+            freight=freight,
+            pay_method=pay_method,
+            status=pay_status,
+            address=address
+        )
+
+        redis_cli = get_redis_connection('carts')
+        sku_id_counts = redis_cli.hgetall(f'carts_{user.id}')
+        selected_ids = redis_cli.smembers(f'selected_{user.id}')
+        carts = {}
+        for sku_id in selected_ids:
+            carts[int(sku_id)] = int(sku_id_counts[sku_id])     # 获取商品对应的数量
+
+        for sku_id, count in carts.items():
+            sku = SKU.objects.get(id=sku_id)
+            if sku.stock < count:   # 如果库存小于购买数量，则说明库存不足
+                return JsonResponse({'code': 400, 'errmsg': '库存不足'})
+
+            sku.stock -= count  # 减少库存
+            sku.sales += count  # 增加销量
+            sku.save()
+
+            orderinfo.total_count += count  # 订单里商品的总量
+            orderinfo.total_amount += (count * sku.price)   # 订单里商品的总价
+
+            OrderGoods.objects.create(
+                order=orderinfo,
+                count=count,
+                sku=sku,
+                price=sku.price
+            )
+        orderinfo.save()
+
+        return JsonResponse({'code': 0, 'order_id': order_id})

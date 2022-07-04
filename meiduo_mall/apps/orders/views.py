@@ -11,6 +11,7 @@ from django_redis import get_redis_connection
 from apps.goods.models import SKU
 from django.http import JsonResponse
 
+
 # 提交订单页面展示
 class OrderSettlementView(LoginRequiredJSONMixin, View):
 
@@ -42,7 +43,7 @@ class OrderSettlementView(LoginRequiredJSONMixin, View):
 
         selected_carts = {}
         for sku_id in selected_ids:
-                selected_carts[int(sku_id)] = int(sku_id_counts[sku_id])
+            selected_carts[int(sku_id)] = int(sku_id_counts[sku_id])
 
         sku_list = []
         for sku_id, count in selected_carts.items():
@@ -71,6 +72,8 @@ class OrderSettlementView(LoginRequiredJSONMixin, View):
 from apps.orders.models import OrderInfo, OrderGoods
 from django.utils import timezone
 from decimal import Decimal
+from django.db import transaction
+
 
 # 提交订单功能
 class OrderCommitView(View):
@@ -104,42 +107,49 @@ class OrderCommitView(View):
         total_amount = Decimal('0')  # 总金额
         freight = Decimal('10.00')  # 运费
 
-        orderinfo = OrderInfo.objects.create(
-            order_id=order_id,
-            user=user,
-            total_count=total_count,
-            total_amount=total_amount,
-            freight=freight,
-            pay_method=pay_method,
-            status=pay_status,
-            address=address
-        )
+        # 事务
+        with transaction.atomic():
 
-        redis_cli = get_redis_connection('carts')
-        sku_id_counts = redis_cli.hgetall(f'carts_{user.id}')
-        selected_ids = redis_cli.smembers(f'selected_{user.id}')
-        carts = {}
-        for sku_id in selected_ids:
-            carts[int(sku_id)] = int(sku_id_counts[sku_id])     # 获取商品对应的数量
+            point = transaction.savepoint()  # 事务开始点
 
-        for sku_id, count in carts.items():
-            sku = SKU.objects.get(id=sku_id)
-            if sku.stock < count:   # 如果库存小于购买数量，则说明库存不足
-                return JsonResponse({'code': 400, 'errmsg': '库存不足'})
-
-            sku.stock -= count  # 减少库存
-            sku.sales += count  # 增加销量
-            sku.save()
-
-            orderinfo.total_count += count  # 订单里商品的总量
-            orderinfo.total_amount += (count * sku.price)   # 订单里商品的总价
-
-            OrderGoods.objects.create(
-                order=orderinfo,
-                count=count,
-                sku=sku,
-                price=sku.price
+            orderinfo = OrderInfo.objects.create(
+                order_id=order_id,
+                user=user,
+                total_count=total_count,
+                total_amount=total_amount + freight,
+                freight=freight,
+                pay_method=pay_method,
+                status=pay_status,
+                address=address
             )
-        orderinfo.save()
 
+            redis_cli = get_redis_connection('carts')
+            sku_id_counts = redis_cli.hgetall(f'carts_{user.id}')
+            selected_ids = redis_cli.smembers(f'selected_{user.id}')
+            carts = {}
+            for sku_id in selected_ids:
+                carts[int(sku_id)] = int(sku_id_counts[sku_id])  # 获取商品对应的数量
+
+            for sku_id, count in carts.items():
+                sku = SKU.objects.get(id=sku_id)
+                if sku.stock < count:  # 如果库存小于购买数量，则说明库存不足
+
+                    transaction.savepoint_rollback(point)   # 回滚点(回到开始点)
+                    return JsonResponse({'code': 400, 'errmsg': '库存不足'})
+
+                sku.stock -= count  # 减少库存
+                sku.sales += count  # 增加销量
+                sku.save()
+
+                orderinfo.total_count += count  # 订单里商品的总量
+                orderinfo.total_amount += (count * sku.price)  # 订单里商品的总价
+
+                OrderGoods.objects.create(
+                    order=orderinfo,
+                    count=count,
+                    sku=sku,
+                    price=sku.price
+                )
+            orderinfo.save()
+            transaction.savepoint_commit(point)   # 事务提交点
         return JsonResponse({'code': 0, 'order_id': order_id})

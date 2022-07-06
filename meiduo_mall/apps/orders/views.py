@@ -1,4 +1,5 @@
 import json
+import time
 
 from django.shortcuts import render
 
@@ -131,25 +132,39 @@ class OrderCommitView(View):
                 carts[int(sku_id)] = int(sku_id_counts[sku_id])  # 获取商品对应的数量
 
             for sku_id, count in carts.items():
-                sku = SKU.objects.get(id=sku_id)
-                if sku.stock < count:  # 如果库存小于购买数量，则说明库存不足
 
-                    transaction.savepoint_rollback(point)   # 回滚点(回到开始点)
-                    return JsonResponse({'code': 400, 'errmsg': '库存不足'})
+                for i in range(5):  # 乐观锁的优化
+                    sku = SKU.objects.get(id=sku_id)
+                    if sku.stock < count:  # 如果库存小于购买数量，则说明库存不足
 
-                sku.stock -= count  # 减少库存
-                sku.sales += count  # 增加销量
-                sku.save()
+                        transaction.savepoint_rollback(point)   # 回滚点(回到开始点)
+                        return JsonResponse({'code': 400, 'errmsg': '库存不足'})
 
-                orderinfo.total_count += count  # 订单里商品的总量
-                orderinfo.total_amount += (count * sku.price)  # 订单里商品的总价
+                    # sku.stock -= count  # 减少库存
+                    # sku.sales += count  # 增加销量
+                    # sku.save()
 
-                OrderGoods.objects.create(
-                    order=orderinfo,
-                    count=count,
-                    sku=sku,
-                    price=sku.price
-                )
+                    # 乐观锁解决超卖问题
+                    old_stock = sku.stock
+
+                    new_stock = old_stock - count
+                    new_sales = old_stock + count
+                    result = SKU.objects.filter(id=sku_id, stock=old_stock).update(stock=new_stock, sales=new_sales)
+                    if result == 0:
+                        time.sleep(0.05)
+                        continue
+                        # transaction.savepoint_rollback(point)
+                        # return JsonResponse({'code': 400, 'errmsg': '下单失败'})
+                    orderinfo.total_count += count  # 订单里商品的总量
+                    orderinfo.total_amount += (count * sku.price)  # 订单里商品的总价
+
+                    OrderGoods.objects.create(
+                        order=orderinfo,
+                        count=count,
+                        sku=sku,
+                        price=sku.price
+                    )
+                    break
             orderinfo.save()
             transaction.savepoint_commit(point)   # 事务提交点
         return JsonResponse({'code': 0, 'order_id': order_id})

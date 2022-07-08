@@ -97,7 +97,7 @@ class OrderCommitView(View):
             return JsonResponse({'code': 400})
 
         # 生成订单id    年月日时分秒 + 用户id(要求为9位)
-        order_id = timezone.localtime().strftime('%Y%m%d%H%M%S') + '%09d' % user.id
+        order_id = timezone.localtime().strftime('%Y%m%d%H%M%S%f') + '%09d' % user.id
 
         if pay_method == OrderInfo.PAY_METHODS_ENUM['CASH']:
             pay_status = OrderInfo.ORDER_STATUS_ENUM['UNSEND']
@@ -134,6 +134,7 @@ class OrderCommitView(View):
             for sku_id, count in carts.items():
 
                 for i in range(5):  # 乐观锁的优化
+
                     sku = SKU.objects.get(id=sku_id)
                     if sku.stock < count:  # 如果库存小于购买数量，则说明库存不足
 

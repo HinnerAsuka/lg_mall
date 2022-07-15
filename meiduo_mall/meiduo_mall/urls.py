@@ -24,7 +24,7 @@ register_converter(UsernameConverter, 'Username')
 register_converter(MobileConverter, 'Mobile')
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('admin_manage/', admin.site.urls),
     # 导入users子应用的路由
     path('', include('apps.users.urls')),
     path('', include('apps.verify.urls')),
@@ -33,5 +33,6 @@ urlpatterns = [
     path('', include('apps.goods.urls')),
     path('', include('apps.carts.urls')),
     path('', include('apps.orders.urls')),
-    path('', include('apps.pay.urls'))
+    path('', include('apps.pay.urls')),
+    path('meiduo_admin/', include('apps.admin_manage.urls')),
 ]

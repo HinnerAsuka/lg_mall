@@ -18,7 +18,7 @@ jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
 jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
 
 
-# 重写
+# 重写登录判断
 class LegouWebTokenSerializer(JSONWebTokenSerializer):
 
     def validate(self, attrs):

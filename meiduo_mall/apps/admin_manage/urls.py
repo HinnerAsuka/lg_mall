@@ -13,6 +13,7 @@ urlpatterns = [
     path('statistical/total_count/', TotalUserAPIView.as_view()),
     path('statistical/day_increment/', DailyIncrementAPIView.as_view()),
     path('statistical/month_increment/', MonthIncrementAPIView.as_view()),
+    # 新增用户
     path('users/', UserAPIView.as_view()),
     # 新增图片列表展示
     path('skus/simple/', ImageSKUAPIView.as_view()),
